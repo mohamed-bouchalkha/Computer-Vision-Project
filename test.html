@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classificateur de Fruits Professionnel</title>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary-color: #f43f5e;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
+            --dark-color: #1f2937;
+            --light-color: #f8fafc;
+            --border-radius: 16px;
+            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--border-radius);
+            padding: 40px;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .upload-zone {
+            border: 3px dashed var(--primary-color);
+            border-radius: var(--border-radius);
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .upload-zone:hover::before {
+            left: 100%;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary-dark);
+            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--success-color);
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+            opacity: 0.7;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: var(--dark-color);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .preview-section {
+            display: none;
+            margin: 30px 0;
+        }
+
+        .image-container {
+            position: relative;
+            display: inline-block;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            max-width: 100%;
+        }
+
+        #preview-image {
+            max-width: 500px;
+            max-height: 500px;
+            width: auto;
+            height: auto;
+            display: block;
+            border-radius: var(--border-radius);
+        }
+
+        #segmentation-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            border-radius: var(--border-radius);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 180px;
+            justify-content: center;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn:disabled {
+            background: linear-gradient(135deg, #9ca3af, #6b7280);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            box-shadow: 0 10px 25px rgba(107, 114, 128, 0.3);
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: var(--transition);
+        }
+
+        .result-card.primary {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            border-color: var(--primary-color);
+        }
+
+        .result-card.success {
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+            border-color: var(--success-color);
+        }
+
+        .result-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .result-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+
+        .result-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .detection-list {
+            background: #f8fafc;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .detection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .detection-item:last-child {
+            border-bottom: none;
+        }
+
+        .detection-fruit {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .detection-confidence {
+            font-weight: 700;
+            color: var(--success-color);
+        }
+
+        .color-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .debug-panel {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .debug-toggle {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 15px;
+        }
+
+        .debug-content {
+            background: #1f2937;
+            color: #f3f4f6;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 2px solid var(--error-color);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            text-align: center;
+            color: #991b1b;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-card {
+                padding: 20px;
+            }
+            
+            .upload-zone {
+                padding: 40px 15px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .animate-pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍎 Classificateur de Fruits IA</h1>
+            <p>Détection et segmentation intelligente de fruits avec IA avancée</p>
+        </div>
+
+        <div class="main-card">
+            <div class="upload-section">
+                <div class="upload-zone" id="upload-zone">
+                    <span class="upload-icon">📸</span>
+                    <div class="upload-text">Glissez-déposez votre image ici</div>
+                    <div class="upload-subtext">ou cliquez pour sélectionner un fichier (JPG, PNG, WebP)</div>
+                    <input type="file" id="file-input" accept="image/*" style="display: none;">
+                </div>
+            </div>
+
+            <div class="preview-section" id="preview-section">
+                <div class="image-container" id="image-container">
+                    <img id="preview-image" alt="Image à analyser">
+                    <canvas id="segmentation-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn" id="analyze-btn" disabled>
+                    <span>🔍</span>
+                    Analyser l'image
+                </button>
+                <button class="btn btn-secondary" id="clear-btn" style="display: none;">
+                    <span>🗑️</span>
+                    Nouvelle image
+                </button>
+            </div>
+
+            <div class="loading-spinner" id="loading-spinner"></div>
+
+            <div class="results-section" id="results-section">
+                <div class="results-grid" id="results-grid">
+                    <!-- Les résultats seront insérés ici -->
+                </div>
+                
+                <div class="detection-list" id="detection-list" style="display: none;">
+                    <h3 style="margin-bottom: 15px; color: var(--dark-color);">📋 Détails des détections</h3>
+                    <div id="detection-items"></div>
+                </div>
+            </div>
+
+            <div class="debug-panel" id="debug-panel">
+                <button class="debug-toggle" id="debug-toggle">Afficher les détails techniques</button>
+                <div class="debug-content" id="debug-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration de l'API Roboflow
+        const API_CONFIG = {
+            apiKey: '4xNp7MQJ5aoDUXQLwOau',
+            endpoint: 'https://serverless.roboflow.com/infer/workflows/mohamed-4xia1/custom-workflow-3'
+        };
+
+        // Mapping des classes de fruits avec emojis et noms français
+        const FRUIT_CLASSES = {
+            'apple': { emoji: '🍎', name: 'Pomme', color: '#ef4444' },
+            'banana': { emoji: '🍌', name: 'Banane', color: '#eab308' },
+            'cherry': { emoji: '🍒', name: 'Cerise', color: '#dc2626' },
+            'cucumber': { emoji: '🥒', name: 'Concombre', color: '#16a34a' },
+            'grapes': { emoji: '🍇', name: 'Raisins', color: '#8b5cf6' },
+            'kiwi': { emoji: '🥝', name: 'Kiwi', color: '#84cc16' },
+            'lemon': { emoji: '🍋', name: 'Citron', color: '#facc15' },
+            'mango': { emoji: '🥭', name: 'Mangue', color: '#f97316' },
+            'orange': { emoji: '🍊', name: 'Orange', color: '#ea580c' },
+            'pinapple': { emoji: '🍍', name: 'Ananas', color: '#eab308' },
+            'pineapple': { emoji: '🍍', name: 'Ananas', color: '#eab308' },
+            'tomato': { emoji: '🍅', name: 'Tomate', color: '#ef4444' },
+            'water_melon': { emoji: '🍉', name: 'Pastèque', color: '#16a34a' },
+            'watermelon': { emoji: '🍉', name: 'Pastèque', color: '#16a34a' }
+        };
+
+        // Variables globales
+        let currentImage = null;
+        let currentAnalysis = null;
+        const segmentationColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16'];
+
+        // Éléments DOM
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const previewSection = document.getElementById('preview-section');
+        const previewImage = document.getElementById('preview-image');
+        const imageContainer = document.getElementById('image-container');
+        const segmentationCanvas = document.getElementById('segmentation-canvas');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const resultsSection = document.getElementById('results-section');
+        const resultsGrid = document.getElementById('results-grid');
+        const detectionList = document.getElementById('detection-list');
+        const detectionItems = document.getElementById('detection-items');
+        const debugPanel = document.getElementById('debug-panel');
+        const debugToggle = document.getElementById('debug-toggle');
+        const debugContent = document.getElementById('debug-content');
+
+        // Gestionnaires d'événements
+        function initEventListeners() {
+            // Upload zone events
+            uploadZone.addEventListener('click', () => fileInput.click());
+            uploadZone.addEventListener('dragover', handleDragOver);
+            uploadZone.addEventListener('dragleave', handleDragLeave);
+            uploadZone.addEventListener('drop', handleDrop);
+
+            // File input
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Buttons
+            analyzeBtn.addEventListener('click', analyzeImage);
+            clearBtn.addEventListener('click', clearAll);
+            debugToggle.addEventListener('click', toggleDebug);
+        }
+
+        // Gestion du drag & drop
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        // Gestion de la sélection de fichier
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        // Traitement du fichier image
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError('Veuillez sélectionner un fichier image valide.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                loadImage(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Chargement et affichage de l'image
+        function loadImage(dataUrl) {
+            const img = new Image();
+            img.onload = function() {
+                // Optimiser la taille de l'image
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                const MAX_SIZE = 640;
+                let { width, height } = img;
+                
+                if (width > height) {
+                    if (width > MAX_SIZE) {
+                        height = (height * MAX_SIZE) / width;
+                        width = MAX_SIZE;
+                    }
+                } else {
+                    if (height > MAX_SIZE) {
+                        width = (width * MAX_SIZE) / height;
+                        height = MAX_SIZE;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Stocker l'image optimisée
+                currentImage = {
+                    dataUrl: canvas.toDataURL('image/jpeg', 0.9),
+                    base64: canvas.toDataURL('image/jpeg', 0.9).split(',')[1],
+                    width,
+                    height
+                };
+
+                // Afficher l'aperçu
+                previewImage.src = currentImage.dataUrl;
+                previewImage.onload = function() {
+                    setupCanvas();
+                    previewSection.style.display = 'block';
+                    previewSection.classList.add('animate-slide-in');
+                    analyzeBtn.disabled = false;
+                    clearBtn.style.display = 'inline-flex';
+                    
+                    // Masquer les résultats précédents
+                    resultsSection.style.display = 'none';
+                    debugPanel.style.display = 'none';
+                };
+            };
+            img.src = dataUrl;
+        }
+
+        // Configuration du canvas de segmentation
+        function setupCanvas() {
+            const rect = previewImage.getBoundingClientRect();
+            segmentationCanvas.width = previewImage.naturalWidth || currentImage.width;
+            segmentationCanvas.height = previewImage.naturalHeight || currentImage.height;
+            segmentationCanvas.style.width = previewImage.offsetWidth + 'px';
+            segmentationCanvas.style.height = previewImage.offsetHeight + 'px';
+        }
+
+        // Analyse de l'image
+        async function analyzeImage() {
+            if (!currentImage) return;
+
+            setLoadingState(true);
+            clearResults();
+
+            try {
+                const requestBody = {
+                    api_key: API_CONFIG.apiKey,
+                    inputs: {
+                        image: currentImage.base64
+                    }
+                };
+
+                console.log('Envoi de la requête à l\'API...');
+                
+                const response = await fetch(API_CONFIG.endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Réponse de l\'API:', data);
+
+                currentAnalysis = data;
+                processResults(data);
+
+            } catch (error) {
+                console.error('Erreur lors de l\'analyse:', error);
+                showError(`Erreur lors de l'analyse: ${error.message}`);
+                showDebugInfo({ error: error.message, stack: error.stack });
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        // Traitement des résultats
+        function processResults(data) {
+            const predictions = extractPredictions(data);
+            
+            if (!predictions || predictions.length === 0) {
+                showError('Aucun fruit détecté dans l\'image. Essayez avec une image plus claire.');
+                showDebugInfo(data);
+                return;
+            }
+
+            // Trier par confiance décroissante
+            predictions.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+
+            // Afficher les résultats
+            displayResults(predictions);
+            drawSegmentations(predictions);
+            showDebugInfo(data);
+        }
+
+        // Extraction des prédictions depuis la réponse API
+        function extractPredictions(data) {
+            // Format direct: data.predictions
+            if (data.predictions && Array.isArray(data.predictions)) {
+                return data.predictions;
+            }
+
+            // Format workflow: data.outputs
+            if (data.outputs && Array.isArray(data.outputs)) {
+                for (const output of data.outputs) {
+                    if (output.predictions) {
+                        if (Array.isArray(output.predictions)) {
+                            return output.predictions;
+                        }
+                        if (output.predictions.predictions && Array.isArray(output.predictions.predictions)) {
+                            return output.predictions.predictions;
+                        }
+                    }
+                }
+            }
+
+            // Recherche récursive
+            return findPredictionsRecursive(data);
+        }
+
+        // Recherche récursive des prédictions
+        function findPredictionsRecursive(obj) {
+            if (!obj || typeof obj !== 'object') return [];
+
+            if (Array.isArray(obj)) {
+                for (const item of obj) {
+                    const found = findPredictionsRecursive(item);
+                    if (found.length > 0) return found;
+                }
+                return [];
+            }
+
+            if (obj.predictions && Array.isArray(obj.predictions)) {
+                return obj.predictions;
+            }
+
+            for (const key in obj) {
+                const found = findPredictionsRecursive(obj[key]);
+                if (found.length > 0) return found;
+            }
+
+            return [];
+        }
+
+        // Affichage des résultats
+        function displayResults(predictions) {
+            // Statistiques générales
+            const bestPrediction = predictions[0];
+            const fruitInfo = getFruitInfo(bestPrediction.class);
+            const avgConfidence = predictions.reduce((sum, p) => sum + (p.confidence || 0), 0) / predictions.length;
+
+            resultsGrid.innerHTML = `
+                <div class="result-card primary">
+                    <div class="result-icon">${fruitInfo.emoji}</div>
+                    <div class="result-title">Fruit principal détecté</div>
+                    <div class="result-value">${fruitInfo.name}</div>
+                </div>
+                <div class="result-card success">
+                    <div class="result-icon">📊</div>
+                    <div class="result-title">Confiance</div>
+                    <div class="result-value">${(bestPrediction.confidence * 100).toFixed(1)}%</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-icon">🔍</div>
+                    <div class="result-title">Objets détectés</div>
+                    <div class="result-value">${predictions.length}</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-icon">🎯</div>
+                    <div class="result-title">Précision moyenne</div>
+                    <div class="result-value">${(avgConfidence * 100).toFixed(1)}%</div>
+                </div>
+            `;
+
+            // Liste détaillée des détections
+            if (predictions.length > 1) {
+                detectionItems.innerHTML = predictions.map((pred, index) => {
+                    const fruit = getFruitInfo(pred.class);
+                    const color = segmentationColors[index % segmentationColors.length];
+                    
+                    return `
+                        <div class="detection-item">
+                            <div class="detection-fruit">
+                                <span class="color-indicator" style="background-color: ${color}"></span>
+                                <span>${fruit.emoji} ${fruit.name}</span>
+                            </div>
+                            <div class="detection-confidence">${(pred.confidence * 100).toFixed(1)}%</div>
+                        </div>
+                    `;
+                }).join('');
+
+                detectionList.style.display = 'block';
+            }
+
+            resultsSection.style.display = 'block';
+            resultsSection.classList.add('animate-slide-in');
+        }
+
+        // Dessin des segmentations
+        function drawSegmentations(predictions) {
+            const ctx = segmentationCanvas.getContext('2d');
+            ctx.clearRect(0, 0, segmentationCanvas.width, segmentationCanvas.height);
+
+            const scaleX = segmentationCanvas.width / currentImage.width;
+            const scaleY = segmentationCanvas.height / currentImage.height;
+
+            predictions.forEach((prediction, index) => {
+                const color = segmentationColors[index % segmentationColors.length];
+                
+                if (prediction.points && prediction.points.length > 0) {
+                    drawSegmentation(ctx, prediction.points, scaleX, scaleY, color, prediction.confidence);
+                } else if (prediction.x !== undefined && prediction.y !== undefined && 
+                          prediction.width !== undefined && prediction.height !== undefined) {
+                    drawBoundingBox(ctx, prediction, scaleX, scaleY, color, prediction.confidence);
+                }
+            });
+        }
+
+        // Dessin d'une segmentation
+        function drawSegmentation(ctx, points, scaleX, scaleY, color, confidence) {
+            if (!points || points.length === 0) return;
+
+            ctx.beginPath();
+            ctx.moveTo(points[0].x * scaleX, points[0].y * scaleY);
+            
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x * scaleX, points[i].y * scaleY);
+            }
+            
+            ctx.closePath();
+
+            // Contour
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Remplissage semi-transparent
+            ctx.fillStyle = color + '30';
+            ctx.fill();
+
+            // Label de confiance
+            if (confidence && confidence > 0) {
+                const centerX = points.reduce((sum, p) => sum + p.x, 0) / points.length * scaleX;
+                const centerY = points.reduce((sum, p) => sum + p.y, 0) / points.length * scaleY;
+                
+                drawLabel(ctx, `${(confidence * 100).toFixed(1)}%`, centerX, centerY, color);
+            }
+        }
+// Dessin d'une boîte englobante
+        function drawBoundingBox(ctx, prediction, scaleX, scaleY, color, confidence) {
+            const x = (prediction.x - prediction.width / 2) * scaleX;
+            const y = (prediction.y - prediction.height / 2) * scaleY;
+            const width = prediction.width * scaleX;
+            const height = prediction.height * scaleY;
+
+            // Contour de la boîte
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, width, height);
+
+            // Remplissage semi-transparent
+            ctx.fillStyle = color + '20';
+            ctx.fillRect(x, y, width, height);
+
+            // Label de confiance
+            if (confidence && confidence > 0) {
+                drawLabel(ctx, `${(confidence * 100).toFixed(1)}%`, x + width / 2, y - 10, color);
+            }
+        }
+
+        // Dessin d'un label
+        function drawLabel(ctx, text, x, y, color) {
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+
+            // Fond du label
+            const metrics = ctx.measureText(text);
+            const padding = 6;
+            const bgWidth = metrics.width + padding * 2;
+            const bgHeight = 20;
+
+            ctx.fillStyle = color;
+            ctx.fillRect(x - bgWidth / 2, y - bgHeight, bgWidth, bgHeight);
+
+            // Texte du label
+            ctx.fillStyle = 'white';
+            ctx.fillText(text, x, y - padding);
+        }
+
+        // Obtenir les informations d'un fruit
+        function getFruitInfo(className) {
+            const normalizedClass = className ? className.toLowerCase().replace(/[-_\s]/g, '') : '';
+            
+            // Recherche exacte
+            if (FRUIT_CLASSES[normalizedClass]) {
+                return FRUIT_CLASSES[normalizedClass];
+            }
+
+            // Recherche par correspondance partielle
+            for (const [key, value] of Object.entries(FRUIT_CLASSES)) {
+                if (normalizedClass.includes(key) || key.includes(normalizedClass)) {
+                    return value;
+                }
+            }
+
+            // Valeur par défaut
+            return {
+                emoji: '🍎',
+                name: className || 'Fruit inconnu',
+                color: '#6b7280'
+            };
+        }
+
+        // Gestion des états de chargement
+        function setLoadingState(loading) {
+            if (loading) {
+                loadingSpinner.style.display = 'block';
+                loadingSpinner.classList.add('animate-pulse');
+                analyzeBtn.disabled = true;
+                analyzeBtn.innerHTML = '<span>⏳</span>Analyse en cours...';
+            } else {
+                loadingSpinner.style.display = 'none';
+                loadingSpinner.classList.remove('animate-pulse');
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = '<span>🔍</span>Analyser l\'image';
+            }
+        }
+
+        // Nettoyage des résultats
+        function clearResults() {
+            resultsSection.style.display = 'none';
+            resultsGrid.innerHTML = '';
+            detectionList.style.display = 'none';
+            detectionItems.innerHTML = '';
+            debugPanel.style.display = 'none';
+            debugContent.innerHTML = '';
+            
+            // Nettoyer le canvas
+            const ctx = segmentationCanvas.getContext('2d');
+            ctx.clearRect(0, 0, segmentationCanvas.width, segmentationCanvas.height);
+        }
+
+        // Nettoyage complet
+        function clearAll() {
+            currentImage = null;
+            currentAnalysis = null;
+            
+            previewSection.style.display = 'none';
+            clearResults();
+            
+            analyzeBtn.disabled = true;
+            clearBtn.style.display = 'none';
+            
+            // Réinitialiser l'input file
+            fileInput.value = '';
+        }
+
+        // Affichage des erreurs
+        function showError(message) {
+            resultsGrid.innerHTML = `
+                <div class="error-message" style="grid-column: 1 / -1;">
+                    <span style="font-size: 2rem; display: block; margin-bottom: 10px;">⚠️</span>
+                    ${message}
+                </div>
+            `;
+            
+            resultsSection.style.display = 'block';
+            resultsSection.classList.add('animate-slide-in');
+        }
+
+        // Affichage des informations de debug
+        function showDebugInfo(data) {
+            debugContent.textContent = JSON.stringify(data, null, 2);
+            debugPanel.style.display = 'block';
+        }
+
+        // Toggle du panneau de debug
+        function toggleDebug() {
+            const isVisible = debugContent.style.display === 'block';
+            debugContent.style.display = isVisible ? 'none' : 'block';
+            debugToggle.textContent = isVisible ? 'Afficher les détails techniques' : 'Masquer les détails techniques';
+        }
+
+        // Redimensionnement du canvas
+        function handleResize() {
+            if (currentImage && previewImage.complete) {
+                setupCanvas();
+                if (currentAnalysis) {
+                    const predictions = extractPredictions(currentAnalysis);
+                    if (predictions.length > 0) {
+                        drawSegmentations(predictions);
+                    }
+                }
+            }
+        }
+
+        // Gestion des erreurs globales
+        function handleGlobalError(error) {
+            console.error('Erreur globale:', error);
+            showError('Une erreur inattendue s\'est produite. Veuillez réessayer.');
+            setLoadingState(false);
+        }
+
+        // Validation des données d'entrée
+        function validateImageData(imageData) {
+            if (!imageData || !imageData.base64) {
+                throw new Error('Données d\'image invalides');
+            }
+            
+            if (imageData.base64.length > 10 * 1024 * 1024) { // 10MB limit
+                throw new Error('L\'image est trop volumineuse (max 10MB)');
+            }
+            
+            return true;
+        }
+
+        // Optimisation des performances
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Initialisation de l'application
+        function initApp() {
+            try {
+                initEventListeners();
+                
+                // Gestionnaire de redimensionnement avec debounce
+                window.addEventListener('resize', debounce(handleResize, 250));
+                
+                // Gestionnaire d'erreurs globales
+                window.addEventListener('error', handleGlobalError);
+                window.addEventListener('unhandledrejection', (event) => {
+                    handleGlobalError(event.reason);
+                });
+                
+                console.log('🍎 Classificateur de Fruits IA initialisé avec succès');
+                
+            } catch (error) {
+                console.error('Erreur lors de l\'initialisation:', error);
+                showError('Erreur lors de l\'initialisation de l\'application.');
+            }
+        }
+
+        // Utilitaires supplémentaires
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function isValidImageType(file) {
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+            return validTypes.includes(file.type.toLowerCase());
+        }
+
+        function getImageDimensions(file) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    resolve({ width: img.naturalWidth, height: img.naturalHeight });
+                };
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
+        // Amélioration de la fonction de gestion des fichiers
+        async function handleFileAdvanced(file) {
+            try {
+                // Validation du type
+                if (!isValidImageType(file)) {
+                    throw new Error('Format de fichier non supporté. Utilisez JPG, PNG, WebP ou GIF.');
+                }
+
+                // Validation de la taille
+                if (file.size > 10 * 1024 * 1024) {
+                    throw new Error(`Fichier trop volumineux (${formatBytes(file.size)}). Maximum autorisé: 10MB.`);
+                }
+
+                // Obtenir les dimensions
+                const dimensions = await getImageDimensions(file);
+                console.log(`Dimensions de l'image: ${dimensions.width}x${dimensions.height}`);
+
+                // Procéder au traitement normal
+                handleFile(file);
+                
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+
+        // Amélioration de la gestion des événements
+        function initAdvancedEventListeners() {
+            // Remplacement de la fonction de base
+            fileInput.removeEventListener('change', handleFileSelect);
+            fileInput.addEventListener('change', (e) => {
+                const files = e.target.files;
+                if (files.length > 0) {
+                    handleFileAdvanced(files[0]);
+                }
+            });
+
+            // Amélioration du drag & drop
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileAdvanced(files[0]);
+                }
+            });
+
+            // Raccourcis clavier
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    clearAll();
+                } else if (e.key === 'Enter' && !analyzeBtn.disabled) {
+                    analyzeImage();
+                }
+            });
+        }
+
+        // Démarrage de l'application
+        document.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            initAdvancedEventListeners();
+        });
+
+    </script>
+</body>
+</html>
